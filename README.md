@@ -3,7 +3,7 @@ A tool for Boost.  It creates a table of all test results organized by test feat
 
 Purpose
 
-Any time one considers using a library as large and complex as the Boost libraries, he must have a way of validating the the library functions in his environment. This should be done when the library is installed and anytime questions are raised regarding its applicability and/or its usage.
+Any time one considers using a library as large and complex as the Boost libraries, he must have a way of validating the the library functions in his environment. This should be done when the library is installed and anytime questions are raised regarding its applicabililty and/or its usage.
 The procedures described here permit a user to run any combination of tests on any or all libraries and generate a set of convenient tables which show which libraries pass which tests under what conditions.
 
 Preliminaries
