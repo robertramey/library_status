@@ -392,7 +392,7 @@ namespace
         {
             fs::path test_path = target_dir / (test_name + ".test");
             target += "<td align=\"right\">";
-            target += fs::exists( test_path) ? pass_msg : fail_msg;
+            target += fs::exists( test_path) ? pass_msg : missing_residue_msg;
             target += "</td>";
             return true;
         }
