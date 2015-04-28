@@ -2,7 +2,7 @@
 
 cmake_minimum_required(VERSION 3.0)
 
-project("LibraryStatus")
+project("LibraryStatus" CXX)
 
 #
 # Compiler settings - special settings for known compilers
