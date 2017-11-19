@@ -310,10 +310,7 @@ namespace
         convert_path_separators( dir );
         dir.erase( 0, 1 );
         // We need path from root, not from 'status' dir.
-        if (dir.find("../") == 0)
-          dir.erase(0,3);
-        else // dir is always relative to the boost directory tree
-          dir.erase( 0, locate_root.string().size()+1 );
+        dir = target_directory(dir);
     }
     else
     {
@@ -891,9 +888,9 @@ int main( int argc, char ** argv )
       {
         capture_lines = ( line.find( ".run for lack of " ) == string::npos );
 
+        // directories relative to boost root
         string target_dir;
         string lib_dir;
-
         parse_skipped_msg( line, target_dir, lib_dir );
 
         if ( target_dir != lib_dir ) // it's a lib problem
