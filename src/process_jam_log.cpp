@@ -309,8 +309,10 @@ namespace
         // the type of grist.
         convert_path_separators( dir );
         dir.erase( 0, 1 );
-        // We need path from root, not from 'status' dir.
-        dir = target_directory(dir);
+        // We need path from root, not from 'status' dir.s
+        string::size_type pos = dir.rfind('/');
+        string leaf(dir, pos);
+        dir = target_directory(dir) + leaf;
     }
     else
     {

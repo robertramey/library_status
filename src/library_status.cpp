@@ -33,7 +33,7 @@ namespace fs = boost::filesystem;
 #include "detail/tiny_xml.hpp"
 namespace xml = boost::tiny_xml;
 
-#include <boost/iterator/transform_iterator.hpp>
+#include <boost/algorithm/string/erase.hpp>
 
 #include <cstdlib>  // for abort, exit
 #include <string>
@@ -48,6 +48,7 @@ namespace xml = boost::tiny_xml;
 #include <stdexcept>
 #include <cassert>
 #include <utility> // for pair
+
 
 using std::string;
 
@@ -74,7 +75,29 @@ namespace
             return c;
         }
     };
-    typedef boost::transform_iterator<char_xlate, std::string::const_iterator> html_from_path; 
+
+    string escape_html(const std::string & s){
+        std::string output_string;
+        BOOST_FOREACH(const char & c, s){
+            switch (c){
+            case '\"':
+                output_string += "&quot;";
+                break;
+            case '&':
+                output_string += "&amp;";
+                break;
+            case '<':
+                output_string += "&lt;";
+                break;
+            case '>':
+                output_string += "&gt;";
+                break;
+            default:
+                output_string += c;
+            }
+        };
+        return output_string;
+    }
 
     template<class I1, class I2>
     std::ostream & operator<<(
@@ -154,18 +177,6 @@ namespace
     string specific_compiler; // if running on one toolset only
 
     const string empty_string;
-
-    //  extract object library name from target directory string  ----------------//
-
-    string extract_object_library_name( const string & s )
-    {
-        string t( s );
-        string::size_type pos = t.find( "/build/" );
-        if ( pos != string::npos ) pos += 7;
-        else if ( (pos = t.find( "/test/" )) != string::npos ) pos += 6;
-        else return "";
-        return t.substr( pos, t.find( "/", pos ) - pos );
-    }
 
     //  find_element  ------------------------------------------------------------//
 
@@ -274,93 +285,67 @@ namespace
             compile += "...\n   (remainder deleted because of excessive size)\n";
         }
 
-        const string target_dir_string = target_dir.string();
+        const std::string target_dir_string
+            = boost::algorithm::erase_first_copy(
+                target_dir.string(),
+                locate_root.string() + '/'
+            );
 
         links_file << "<h2><a name=\"";
-        links_file << std::make_pair(
-            html_from_path(target_dir_string.begin()), 
-            html_from_path(target_dir_string.end())
-            )
-            << "\">"
-            << std::make_pair(
-            html_from_path(target_dir_string.begin()), 
-            html_from_path(target_dir_string.end())
-            )
-            ;
-        links_file << "</a></h2>\n";;
+        links_file << target_dir_string;
+        links_file << "\">";
+        links_file << target_dir_string;
+        links_file << "</a></h2>\n";
 
-        if ( !compile.empty() )
-        {
+        if ( !compile.empty() ){
             ++result;
-            links_file << "<h3>Compiler output:</h3><pre>"
-                << compile << "</pre>\n";
+            links_file
+                << "<h3>Compiler output:</h3>"
+                << "<pre>"
+                << escape_html(compile)
+                << "</pre>\n";
         }
         if ( !link.empty() )
-            links_file << "<h3>Linker output:</h3><pre>" << link << "</pre>\n";
+            links_file
+                << "<h3>Linker output:</h3><pre>"
+                << escape_html(link)
+                << "</pre>\n";
         if ( !run.empty() )
-            links_file << "<h3>Run output:</h3><pre>" << run << "</pre>\n";
+            links_file
+                << "<h3>Run output:</h3><pre>"
+                << escape_html(run)
+                << "</pre>\n";
 
         // for an object library failure, generate a reference to the object
         // library failure message, and (once only) generate the object
         // library failure message itself
         static std::set< string > failed_lib_target_dirs; // only generate once
-        if ( !lib.empty() )
-        {
+        if ( !lib.empty() ){
             if ( lib[0] == '\n' ) lib.erase( 0, 1 );
-            string object_library_name( extract_object_library_name( lib ) );
-
-            // changing the target directory naming scheme breaks
-            // extract_object_library_name()
-            assert( !object_library_name.empty() );
-            if ( object_library_name.empty() )
-                std::cerr << "Failed to extract object library name from " << lib << "\n";
-
-            links_file << "<h3>Library build failure: </h3>\n"
-                "See <a href=\"#"
-                << source_library_name << "-"
-                << object_library_name << "-" 
-                << std::make_pair(
-                html_from_path(target_dir_string.begin()), 
-                html_from_path(target_dir_string.end())
-                )
-                << source_library_name << " - "
-                << object_library_name << " - " 
-                << std::make_pair(
-                html_from_path(target_dir_string.begin()), 
-                html_from_path(target_dir_string.end())
-                )
-                << "</a>";
-            if ( failed_lib_target_dirs.find( lib ) == failed_lib_target_dirs.end() )
-            {
+            links_file
+                << "<h3>Library build failure: </h3>\n"
+                << "See <a href=\"#" << lib << "\">"
+                << lib
+                << "</a>\n";
+            if ( failed_lib_target_dirs.find( lib ) == failed_lib_target_dirs.end() ){
                 failed_lib_target_dirs.insert( lib );
                 fs::path pth( locate_root / lib / "test_log.xml" );
                 fs::ifstream file( pth );
-                if ( file )
-                {
+                if ( file ){
                     xml::element_ptr db = xml::parse( file, pth.string() );
                     generate_report( 
                         *db, 
                         source_library_name, 
                         test_type,
-                        target_dir,
+                        lib,
                         false,
                         false
                     );
                 }
-                else
-                {
-                    links_file << "<h2><a name=\""
-                        << object_library_name << "-" 
-                        << std::make_pair(
-                        html_from_path(target_dir_string.begin()), 
-                        html_from_path(target_dir_string.end())
-                        )
-                        << "\">"
-                        << object_library_name << " - " 
-                        << std::make_pair(
-                        html_from_path(target_dir_string.begin()), 
-                        html_from_path(target_dir_string.end())
-                        )
+                else{
+                    links_file
+                        << "<h2>"
+                        << "<a name=\"" << lib << "\">\n"
                         << "</a></h2>\n"
                         << "test_log.xml not found\n";
                 }
@@ -370,7 +355,6 @@ namespace
     }
 
     struct has_fail_result {
-        //bool operator()(const boost::shared_ptr<const xml::element> e) const {
         bool operator()(const xml::element_ptr & e) const {
             return attribute_value(*e, "result") == "fail";
         }
@@ -396,7 +380,6 @@ namespace
             target += "</td>";
             return true;
         }
-
 
         string test_type( "unknown" );
         bool always_show_run_output( false );
@@ -436,12 +419,12 @@ namespace
             target += "<a href=\"";
             target += links_name;
             target += "#";
-            const string target_dir_string = target_dir.string();
-            std::copy(
-                html_from_path(target_dir_string.begin()), 
-                html_from_path(target_dir_string.end()),
-                std::back_inserter(target)
+            const std::string target_dir_string
+                = boost::algorithm::erase_first_copy(
+                    target_dir.string(),
+                    locate_root.string() + '/'
                 );
+            target += target_dir_string;
             target += "\">";
             target += pass
                 ? (anything_generated < 2 ? pass_msg : warn_msg)
@@ -509,9 +492,7 @@ namespace
         target += "<tr>";
 
         target += "<td>";
-        //target += "<a href=\"" + url_prefix_dir_view + "/libs/" + lib_name + "\">";
         target += test_name;
-        //target += "</a>";
         target += "</td>";
 
         bool no_warn_save = no_warn;
@@ -578,17 +559,6 @@ namespace
     }
 
     //  column header-----------------------------------------------------------//
-    int header_depth(const col_node & root){
-        int max_depth = 1;
-        BOOST_FOREACH(
-            const col_node::subcolumn &s,
-            root.m_subcolumns
-        ){
-            max_depth = (std::max)(max_depth, s.second.rows);
-        }
-        return max_depth;
-    }
-
     void header_cell(int rows, int cols, const std::string & name){
         // add row cells
         report << "<td align=\"center\" " ;
