@@ -55,7 +55,7 @@ using std::string;
 const string pass_msg( "Pass" );
 const string warn_msg( "<i>Warn</i>" );
 const string fail_msg( "<font color=\"#FF0000\"><i>Fail</i></font>" );
-const string missing_residue_msg( "<i>Missing</i>" );
+const string missing_residue_msg( "" );
 
 const std::size_t max_compile_msg_size = 10000;
 
@@ -124,10 +124,7 @@ namespace
 
     std::pair<int, int> col_node::calculate_spans(){
         rows = 0;
-        cols = 0;
-        if(has_log_file){
-            cols = 1;
-        }
+        cols = (has_log_file) ? 1 : 0;
         if(! m_subcolumns.empty()){
             BOOST_FOREACH(
                 subcolumn & s,
@@ -600,7 +597,9 @@ namespace
         }
         */
         BOOST_FOREACH(col_node::subcolumn s, node.m_subcolumns){
-            if(1 == s.second.rows)
+            if(node.rows < 2)
+                continue;
+            if(1 >= s.second.rows)
                 header_cell(row_count - current_row, s.second.cols, s.first);
             else
                 header_cell(1, s.second.cols, s.first);
@@ -683,7 +682,7 @@ namespace
         col_node root_node;
 
         BOOST_FOREACH(
-            fs::directory_entry & d,
+            const fs::directory_entry & d,
             std::make_pair(
                 fs::directory_iterator(lib_test_dir), 
                 fs::directory_iterator()
