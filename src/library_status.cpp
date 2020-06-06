@@ -41,14 +41,13 @@ namespace xml = boost::tiny_xml;
 #include <set>
 #include <utility>  // for make_pair on STLPort
 #include <map>
-#include <algorithm> // max_element, find_if
+#include <algorithm> // max_element, find_if, mismatch
 #include <iostream>
 #include <fstream>
 #include <ctime>
 #include <stdexcept>
-#include <cassert>
-#include <utility> // for pair
-
+#include <cassert>   // assert
+#include <utility>   // for pair
 
 using std::string;
 
@@ -140,6 +139,18 @@ namespace
         return std::make_pair(rows, cols);
     }
 
+    // check if string has the specified suffix
+    bool has_suffix(const string & s, const string & suffix){
+        typedef string::const_reverse_iterator it;
+        std::pair<it, it> result = std::mismatch(
+                suffix.crbegin(),
+                suffix.crend(),
+                s.crbegin()
+            );
+        // return true if sting s has the specified suffix.
+        return result.first == suffix.crend();
+    }
+
     void build_node_tree(const fs::path & dir_root, col_node & node){
         bool has_directories = false;
         BOOST_FOREACH(
@@ -150,12 +161,15 @@ namespace
             )
          ){
              if(fs::is_directory(d)){
-                has_directories = true;
-                std::pair<col_node::subcolumns_t::iterator, bool> result 
-                    = node.m_subcolumns.insert(
-                        std::make_pair(d.path().filename().string(), col_node())
-                    );
-                build_node_tree(d, result.first->second);
+                if(! has_suffix(d.path().filename().string(), ".dSYM")){
+                    has_directories = true;
+                    std::pair<col_node::subcolumns_t::iterator, bool> result
+                        = node.m_subcolumns.insert(
+                            std::make_pair(d.path().filename().string(), col_node())
+                        );
+                    build_node_tree(d, result.first->second);
+                }
+                else {}
              }
              else
              if(d.path().filename() == "test_log.xml"){
@@ -729,6 +743,9 @@ namespace
 
 int cpp_main( int argc, char * argv[] ) // note name!
 {
+    assert(has_suffix("asdfadsfads.dSYM", ".dSYM"));
+    assert(! has_suffix("asdfadsfads", ".dSYM"));
+
     fs::path initial_path = fs::initial_path();
 
     while ( argc > 1 && *argv[1] == '-' )

@@ -22,25 +22,7 @@ elseif( CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang" )
   set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -stdlib=libc++ -dead_strip")
 endif()
 
-#
-# IDE settings
-#
-
-if( CMAKE_HOST_APPLE )
-  # note: it seems that bjam builds both address models in any case
-  # so we can defer this decision to the IDE just as we do for debug/release
-  # so we'll not use this now
-  # set(Boost_ADDRESS_MODEL 64 CACHE INTEGER "32/64 bits")
-  set(Boost_USE_STATIC_LIBS ON CACHE BOOL "Link to Boost static libraries")
-  set(Boost_USE_MULTITHREADED ON)
-else()
-  set(Boost_ADDRESS_MODEL 64 CACHE INTEGER "32/64 bits")
-  set(Boost_USE_STATIC_LIBS ON CACHE BOOL "Link to Boost static libraries")
-  set(Boost_USE_MULTITHREADED ON)
-endif()
-
-# Locate Project Prerequisites 
-#
+# Locate Project Prerequisites
 
 # Boost
 
@@ -85,43 +67,18 @@ endif()
 # end special note for Xcode
 ############################
 
-find_package(Boost REQUIRED COMPONENTS system filesystem)
-
-if(Boost_FOUND)
-    message(STATUS "Boost is ${BOOST_ROOT}")
-    message(STATUS "Boost directories found at ${Boost_INCLUDE_DIRS}")
-    message(STATUS "Boost libraries found at ${Boost_LIBRARY_DIRS}")
-    message(STATUS "Boost component libraries to be linked are ${Boost_LIBRARIES}")
-    message(STATUS "Boost version found is ${Boost_VERSION}")
-    include_directories("../include" "${Boost_INCLUDE_DIRS}")
-    link_directories("${Boost_LIBRARY_DIRS}")
-elseif()
-    message("Boost NOT Found!")
-endif()
-
-if(Boost_USE_STATIC_LIBS)
-  set(BUILD_SHARED_LIBRARIES OFF)
-else()
-  set(BUILD_SHARED_LIBRARIES ON)
-endif()
-
 #
 # Project settings
 #
 
-find_package(Boost COMPONENTS filesystem system REQUIRED)
+find_package(Boost REQUIRED COMPONENTS system filesystem)
 
-if(Boost_FOUND)
+if(NOT Boost_FOUND)
+  message("Boost NOT Found!")
+elseif()
   message(STATUS "Boost is ${BOOST_ROOT}")
   set(Boost_USE_MULTITHREADED ON)
   set(Boost_USE_STATIC_LIBS ON CACHE BOOL "Link to Boost static libraries")
-  # note: it seems that boost builds builds both address models in any case
-  # so we can defer this decision to the IDE just as we do for debug/release
-  # so we'll not use this now
-  # set(Boost_ADDRESS_MODEL 64 CACHE INTEGER "32/64 bits")
-  if( CMAKE_HOST_APPLE )
-    set(Boost_ADDRESS_MODEL 64 CACHE INTEGER "32/64 bits")
-  endif()
   message(STATUS "Boost is ${BOOST_ROOT}")
   message(STATUS "Boost directories found at ${Boost_INCLUDE_DIRS}")
   message(STATUS "Boost libraries found at ${Boost_LIBRARY_DIRS}")
@@ -133,22 +90,28 @@ if(Boost_FOUND)
     set(BUILD_SHARED_LIBRARIES ON)
   endif()
   message(STATUS "Boost Libraries used are: ${Boost_LIBRARIES}" )
-elseif()
-    message("Boost NOT Found!")
+  if( NOT CMAKE_HOST_APPLE )
+    # note: it seems that bjam builds both address models in any case
+    # so we can defer this decision to the IDE just as we do for debug/release
+    # so we'll not use this now
+    # set(Boost_ADDRESS_MODEL 64 CACHE INTEGER "32/64 bits")
+    set(Boost_ADDRESS_MODEL 64 CACHE INTEGER "32/64 bits")
+  endif()
+  set(Boost_USE_STATIC_LIBS ON CACHE BOOL "Link to Boost static libraries")
+  set(Boost_USE_MULTITHREADED ON)
 endif()
-
-link_directories("${Boost_LIBRARY_DIRS}")
 
 ###########################
 # executable builds
 
 add_library ( tiny_xml ../src/detail/tiny_xml.cpp)
+target_include_directories(tiny_xml PUBLIC ${Boost_INCLUDE_DIR})
 
 add_executable( process_jam_log ../src/process_jam_log.cpp)
-target_link_libraries(process_jam_log tiny_xml ${Boost_LIBRARIES})
+target_link_libraries(process_jam_log PRIVATE tiny_xml Boost::system Boost::filesystem)
 
 add_executable( library_status ../src/library_status.cpp)
-target_link_libraries(library_status tiny_xml  ${Boost_LIBRARIES})
+target_link_libraries(library_status PRIVATE tiny_xml Boost::system Boost::filesystem)
 
 # end library_status
 ###########################
