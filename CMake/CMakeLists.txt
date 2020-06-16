@@ -37,7 +37,7 @@ find_package(Boost 1.74 REQUIRED COMPONENTS system filesystem)
 
 if(NOT Boost_FOUND)
   message("Boost NOT Found!")
-elseif()
+else()
   message("Boost Found!")
 endif()
 
