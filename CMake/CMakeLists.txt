@@ -1,8 +1,8 @@
 # CMake build control file for Library Status
 
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 2.8.12)
 
-project("LibraryStatus")
+project("LibraryStatus" CXX)
 
 #
 # Compiler settings - special settings for known compilers
